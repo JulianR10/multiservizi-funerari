@@ -1,9 +1,5 @@
-// Configuración para despliegue en Vercel
 {
   "version": 2,
-  "builds": [
-    { "src": "next.config.ts", "use": "@vercel/next" }
-  ],
   "env": {
     "DATABASE_URL": "@database_url",
     "STRIPE_SECRET_KEY": "@stripe_secret_key",
