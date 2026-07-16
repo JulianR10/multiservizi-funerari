@@ -203,6 +203,16 @@ export function OrderActions({
                     Scarica fattura
                   </a>
                 )}
+                {currentStatus !== "pending" && currentStatus !== "cancelled" && (
+                  <a
+                    href={`/api/admin/orders/${orderId}/ddt`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                  >
+                    Scarica DDT
+                  </a>
+                )}
                 {showRefundConfirm ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-zinc-600">

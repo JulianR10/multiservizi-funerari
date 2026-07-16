@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getAdminSession } from "@/lib/admin-auth"
+import { writeAuditLog } from "@/lib/audit"
 
 const MAX = 2000
 
@@ -50,6 +51,11 @@ export async function saveSettings(
     { key: "low_stock_threshold", value: String(Math.round(lowStock)) },
   ]
 
+  const before = await prisma.setting.findMany({
+    where: { key: { in: entries.map((e) => e.key) } },
+  })
+  const beforeMap = new Map(before.map((b) => [b.key, b.value]))
+
   await prisma.$transaction(
     entries.map((e) =>
       prisma.setting.upsert({
@@ -59,6 +65,19 @@ export async function saveSettings(
       })
     )
   )
+
+  const changed = entries
+    .filter((e) => beforeMap.get(e.key) !== e.value)
+    .map((e) => ({ key: e.key, from: beforeMap.get(e.key), to: e.value }))
+
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "settings.update",
+    entity: "Setting",
+    entityId: "global",
+    metadata: { changed },
+  })
 
   revalidatePath("/admin/settings")
   return { success: true }

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { upsertProduct } from "@/app/actions/admin"
+import { ImageUploader } from "@/components/ImageUploader"
 
 type Category = { id: string; name: string }
 type Product = {
@@ -29,12 +30,12 @@ export function ProductForm({ categories, product }: { categories: Category[]; p
     description: product?.description ?? "",
     price: product ? String(product.price) : "",
     comparePrice: product?.comparePrice ? String(product.comparePrice) : "",
-    images: product?.images.join("\n") ?? "",
     categoryId: product?.categoryId ?? "",
     stock: product ? String(product.stock) : "0",
     published: product?.published ?? false,
     featured: product?.featured ?? false,
   })
+  const [images, setImages] = useState<string[]>(product?.images ?? [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,19 +49,6 @@ export function ProductForm({ categories, product }: { categories: Category[]; p
       return
     }
 
-    const body: Record<string, unknown> = {
-      ...(isEdit ? { id: product!.id } : {}),
-      name: form.name,
-      description: form.description,
-      price,
-      comparePrice: form.comparePrice ? parseInt(form.comparePrice) : null,
-      images: form.images.split("\n").map((s) => s.trim()).filter(Boolean),
-      categoryId: form.categoryId,
-      stock: parseInt(form.stock) || 0,
-      published: form.published,
-      featured: form.featured,
-    }
-
     try {
       const result = await upsertProduct({
         ...(isEdit ? { id: product!.id } : {}),
@@ -68,7 +56,7 @@ export function ProductForm({ categories, product }: { categories: Category[]; p
         description: form.description,
         price,
         comparePrice: form.comparePrice ? parseInt(form.comparePrice) : null,
-        images: form.images.split("\n").map((s) => s.trim()).filter(Boolean),
+        images,
         categoryId: form.categoryId,
         stock: parseInt(form.stock) || 0,
         published: form.published,
@@ -179,17 +167,13 @@ export function ProductForm({ categories, product }: { categories: Category[]; p
       </div>
 
       <div>
-        <label htmlFor="images" className="block text-sm font-medium text-zinc-700">
-          Immagini (un URL per riga)
-        </label>
-        <textarea
-          id="images"
-          rows={3}
-          value={form.images}
-          onChange={(e) => setForm({ ...form, images: e.target.value })}
-          placeholder="https://esempio.com/foto1.jpg"
-          className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-        />
+        <label className="block text-sm font-medium text-zinc-700">Immagini</label>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          Trascina i file o clicca per caricarli. La prima sarà l&apos;immagine principale.
+        </p>
+        <div className="mt-2">
+          <ImageUploader value={images} onChange={setImages} maxFiles={8} />
+        </div>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">

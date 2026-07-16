@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getAdminSession } from "@/lib/admin-auth"
+import { writeAuditLog } from "@/lib/audit"
 
 export type BulkResult = { success: boolean; error?: string; affected?: number }
 
@@ -27,6 +28,15 @@ export async function bulkPublishProducts(ids: unknown): Promise<BulkResult> {
     data: { published: true },
   })
 
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "product.bulk_publish",
+    entity: "Product",
+    entityId: `bulk:${cleanIds.length}`,
+    metadata: { ids: cleanIds, count: result.count },
+  })
+
   revalidatePath("/admin/products")
   return { success: true, affected: result.count }
 }
@@ -41,6 +51,15 @@ export async function bulkUnpublishProducts(ids: unknown): Promise<BulkResult> {
   const result = await prisma.product.updateMany({
     where: { id: { in: cleanIds } },
     data: { published: false },
+  })
+
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "product.bulk_unpublish",
+    entity: "Product",
+    entityId: `bulk:${cleanIds.length}`,
+    metadata: { ids: cleanIds, count: result.count },
   })
 
   revalidatePath("/admin/products")
@@ -66,6 +85,15 @@ export async function bulkDeleteProducts(ids: unknown): Promise<BulkResult> {
 
   const result = await prisma.product.deleteMany({
     where: { id: { in: cleanIds } },
+  })
+
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "product.bulk_delete",
+    entity: "Product",
+    entityId: `bulk:${cleanIds.length}`,
+    metadata: { ids: cleanIds, count: result.count },
   })
 
   revalidatePath("/admin/products")

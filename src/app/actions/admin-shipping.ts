@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { getAdminSession } from "@/lib/admin-auth"
+import { writeAuditLog } from "@/lib/audit"
 
 function slugify(text: string): string {
   return text
@@ -52,7 +53,7 @@ export async function createShippingMethod(formData: {
     return { success: false, error: "Esiste già un metodo con questo nome" }
   }
 
-  await prisma.shippingMethod.create({
+  const created = await prisma.shippingMethod.create({
     data: {
       name,
       slug,
@@ -62,6 +63,15 @@ export async function createShippingMethod(formData: {
       estimatedDaysMax: max ?? null,
       active: formData.active !== false,
     },
+  })
+
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "shipping.create",
+    entity: "ShippingMethod",
+    entityId: created.id,
+    metadata: { name, price },
   })
 
   revalidatePath("/admin/shipping")
@@ -127,6 +137,15 @@ export async function updateShippingMethod(
     },
   })
 
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "shipping.update",
+    entity: "ShippingMethod",
+    entityId: id,
+    metadata: { name, price, active: formData.active !== false },
+  })
+
   revalidatePath("/admin/shipping")
   revalidatePath("/api/shipping-methods")
   return { success: true }
@@ -144,7 +163,19 @@ export async function deleteShippingMethod(id: string): Promise<ShippingResult> 
     }
   }
 
+  const method = await prisma.shippingMethod.findUnique({
+    where: { id },
+    select: { name: true },
+  })
   await prisma.shippingMethod.delete({ where: { id } })
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "shipping.delete",
+    entity: "ShippingMethod",
+    entityId: id,
+    metadata: { name: method?.name },
+  })
   revalidatePath("/admin/shipping")
   revalidatePath("/api/shipping-methods")
   return { success: true }
@@ -160,6 +191,15 @@ export async function toggleShippingMethodActive(
   await prisma.shippingMethod.update({
     where: { id },
     data: { active },
+  })
+
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "shipping.toggle",
+    entity: "ShippingMethod",
+    entityId: id,
+    metadata: { active },
   })
 
   revalidatePath("/admin/shipping")

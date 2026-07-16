@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { assertAdminApi } from "@/lib/admin-guard"
+import { getAdminSession } from "@/lib/admin-auth"
+import { writeAuditLog } from "@/lib/audit"
 
 export async function GET() {
   const unauthorized = await assertAdminApi()
@@ -30,8 +32,10 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const unauthorized = await assertAdminApi()
-  if (unauthorized) return unauthorized
+  const authError = await assertAdminApi()
+  if (authError) return authError
+
+  const admin = await getAdminSession()
 
   const { userId, action } = await request.json()
 
@@ -49,6 +53,15 @@ export async function PATCH(request: NextRequest) {
   await prisma.user.update({
     where: { id: userId },
     data: { status },
+  })
+
+  await writeAuditLog({
+    actorId: admin?.userId,
+    actorEmail: admin?.email,
+    action: action === "approve" ? "user.approve" : "user.reject",
+    entity: "User",
+    entityId: userId,
+    metadata: { from: user.status, to: status, email: user.email },
   })
 
   if (action === "approve") {

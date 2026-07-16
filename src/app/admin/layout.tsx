@@ -41,6 +41,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/settings" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
               Impostazioni
             </Link>
+            <Link href="/admin/audit" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
+              Audit
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <AdminNotifications />

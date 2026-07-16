@@ -6,10 +6,11 @@ import { sendShippingConfirmation } from "@/lib/email"
 import { revalidatePath } from "next/cache"
 import { getAdminSession } from "@/lib/admin-auth"
 import { sanitizeCsvCell } from "@/lib/validators"
+import { writeAuditLog } from "@/lib/audit"
 
-async function assertAdmin(): Promise<boolean> {
+async function assertAdmin() {
   const session = await getAdminSession()
-  return session !== null
+  return session
 }
 
 type ActionResult<T = void> =
@@ -42,7 +43,8 @@ export async function upsertProduct(data: {
   published: boolean
   featured: boolean
 }): Promise<ActionResult> {
-  if (!(await assertAdmin())) {
+  const session = await assertAdmin()
+  if (!session) {
     return { success: false, error: "Non autorizzato" }
   }
 
@@ -66,8 +68,16 @@ export async function upsertProduct(data: {
         featured: data.featured,
       },
     })
+    await writeAuditLog({
+      actorId: session.userId,
+      actorEmail: session.email,
+      action: "product.update",
+      entity: "Product",
+      entityId: data.id,
+      metadata: { name: data.name, price: data.price, stock: data.stock, published: data.published },
+    })
   } else {
-    await prisma.product.create({
+    const created = await prisma.product.create({
       data: {
         name: data.name,
         slug: slugify(data.name),
@@ -81,6 +91,14 @@ export async function upsertProduct(data: {
         featured: data.featured || false,
       },
     })
+    await writeAuditLog({
+      actorId: session.userId,
+      actorEmail: session.email,
+      action: "product.create",
+      entity: "Product",
+      entityId: created.id,
+      metadata: { name: data.name, price: data.price, stock: data.stock },
+    })
   }
 
   revalidatePath("/admin/products")
@@ -89,7 +107,8 @@ export async function upsertProduct(data: {
 }
 
 export async function deleteProduct(id: string): Promise<ActionResult> {
-  if (!(await assertAdmin())) {
+  const session = await assertAdmin()
+  if (!session) {
     return { success: false, error: "Non autorizzato" }
   }
 
@@ -101,7 +120,16 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
     }
   }
 
+  const product = await prisma.product.findUnique({ where: { id }, select: { name: true } })
   await prisma.product.delete({ where: { id } })
+  await writeAuditLog({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "product.delete",
+    entity: "Product",
+    entityId: id,
+    metadata: { name: product?.name },
+  })
   revalidatePath("/admin/products")
   revalidatePath("/products")
   return { success: true, data: undefined }
@@ -113,7 +141,8 @@ export async function updateOrder(data: {
   trackingNumber?: string | null
   trackingUrl?: string | null
 }): Promise<ActionResult> {
-  if (!(await assertAdmin())) {
+  const session = await assertAdmin()
+  if (!session) {
     return { success: false, error: "Non autorizzato" }
   }
 
@@ -135,11 +164,46 @@ export async function updateOrder(data: {
     updateData.trackingUrl = data.trackingUrl || null
   }
 
+  const before = await prisma.order.findUnique({
+    where: { id: data.id },
+    select: { status: true, trackingNumber: true, trackingUrl: true, invoiceNumber: true },
+  })
+
   const order = await prisma.order.update({
     where: { id: data.id },
     data: updateData,
     include: { user: { select: { name: true, email: true } } },
   })
+
+  if (data.status !== undefined && before?.status !== data.status) {
+    await writeAuditLog({
+      actorId: session.userId,
+      actorEmail: session.email,
+      action: "order.update_status",
+      entity: "Order",
+      entityId: data.id,
+      metadata: {
+        invoiceNumber: order.invoiceNumber,
+        from: before?.status,
+        to: data.status,
+      },
+    })
+  }
+
+  if (data.trackingNumber !== undefined && before?.trackingNumber !== data.trackingNumber) {
+    await writeAuditLog({
+      actorId: session.userId,
+      actorEmail: session.email,
+      action: "order.update_tracking",
+      entity: "Order",
+      entityId: data.id,
+      metadata: {
+        invoiceNumber: order.invoiceNumber,
+        from: before?.trackingNumber,
+        to: data.trackingNumber,
+      },
+    })
+  }
 
   if (data.trackingNumber && data.trackingNumber !== "") {
     const customerEmail = order.user?.email || order.guestEmail
@@ -197,7 +261,8 @@ export async function refundOrder(
   orderId: string,
   amountCents?: number
 ): Promise<ActionResult> {
-  if (!(await assertAdmin())) {
+  const session = await assertAdmin()
+  if (!session) {
     return { success: false, error: "Non autorizzato" }
   }
 
@@ -238,6 +303,19 @@ export async function refundOrder(
     const { stripeAdapter } = await import("@/lib/payment-adapters/stripe-adapter")
     setPaymentProvider(stripeAdapter)
     await refundPayment(order.stripePaymentIntentId, amountCents)
+
+    await writeAuditLog({
+      actorId: session.userId,
+      actorEmail: session.email,
+      action: amountCents ? "order.partial_refund" : "order.refund",
+      entity: "Order",
+      entityId: orderId,
+      metadata: {
+        invoiceNumber: order.invoiceNumber,
+        amount: amountCents || order.total,
+        partial: amountCents ? true : false,
+      },
+    })
 
     revalidatePath("/admin/orders")
     revalidatePath(`/admin/orders/${orderId}`)
