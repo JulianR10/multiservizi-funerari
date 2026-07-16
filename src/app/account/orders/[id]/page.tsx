@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { formatPrice } from "@/lib/format"
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/order-status"
 import { ReorderButton } from "./reorder-button"
+import { SaveAsListButton } from "./save-as-list-button"
 
 export default async function OrderDetailPage({
   params,
@@ -195,6 +196,15 @@ export default async function OrderDetailPage({
               productId: item.productId,
               quantity: item.quantity,
             }))}
+          />
+
+          <SaveAsListButton
+            orderId={order.id}
+            defaultName={
+              order.invoiceNumber
+                ? `Ordine ${order.invoiceNumber}`
+                : undefined
+            }
           />
         </aside>
       </div>

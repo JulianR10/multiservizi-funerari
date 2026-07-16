@@ -36,6 +36,7 @@ model User {
 
   orders   Order[]
   addresses Address[]
+  shoppingLists ShoppingList[]
 }
 
 model Category {
@@ -70,6 +71,7 @@ model Product {
   updatedAt     DateTime     @updatedAt
 
   orderItems OrderItem[]
+  shoppingListItems ShoppingListItem[]
 }
 
 model ShippingMethod {
@@ -191,4 +193,32 @@ model AuditLog {
   @@index([actorId])
   @@index([createdAt])
   @@index([action])
+}
+
+model ShoppingList {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ShoppingListItem[]
+
+  @@index([userId])
+}
+
+model ShoppingListItem {
+  id        String   @id @default(cuid())
+  listId    String
+  list      ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([listId, productId])
+  @@index([listId])
 }
