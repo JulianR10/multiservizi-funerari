@@ -50,11 +50,13 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square items-center justify-center rounded-lg bg-chalk">
-        <img
+      <div className="relative flex aspect-square items-center justify-center rounded-lg bg-chalk">
+        <Image
           src={FALLBACK_IMAGE}
           alt={productName}
-          className="h-full w-full object-cover"
+          fill
+          className="object-cover"
+          sizes="(max-width: 1024px) 100vw, 50vw"
         />
       </div>
     )

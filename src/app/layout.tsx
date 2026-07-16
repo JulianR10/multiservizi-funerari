@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { Cormorant_Garamond, Lato } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
@@ -104,6 +105,7 @@ export default function RootLayout({
             <CookieBanner />
           </HideOnAdmin>
         </Suspense>
+        <Analytics />
         <OfflineBanner />
         <Toaster
           position="bottom-left"

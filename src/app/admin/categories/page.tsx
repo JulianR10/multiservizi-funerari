@@ -3,6 +3,16 @@ import { getCategories } from "@/app/actions/admin-categories"
 import { assertAdminPage } from "@/lib/admin-guard"
 import { DeleteCategoryButton } from "./delete-button"
 
+type CategoryWithCount = {
+  id: string
+  name: string
+  image: string | null
+  slug: string
+  parentId: string | null
+  parent: { id: string; name: string } | null
+  _count: { products: number; children: number }
+}
+
 export default async function AdminCategoriesPage() {
   await assertAdminPage()
 
@@ -42,7 +52,7 @@ export default async function AdminCategoriesPage() {
                 </td>
               </tr>
             ) : (
-              categories.map((cat: any) => (
+              categories.map((cat: CategoryWithCount) => (
                 <tr key={cat.id} className="hover:bg-zinc-50">
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900">
                     {cat.name}

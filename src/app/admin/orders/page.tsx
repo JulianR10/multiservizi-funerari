@@ -28,7 +28,6 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null)
   const [editingTracking, setEditingTracking] = useState<string | null>(null)
   const [trackingForm, setTrackingForm] = useState({ number: "", url: "" })
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -66,6 +65,8 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders(page, debouncedQuery)
+    // fetchOrders is intentionally excluded — adding it would cause an infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, debouncedQuery])
 
   async function updateStatus(orderId: string, status: string) {

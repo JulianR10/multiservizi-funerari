@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { createCustomerSession, destroyCustomerSession } from "@/lib/customer-auth"
-import { cookies } from "next/headers"
 import { sendEmail } from "@/lib/email"
 import { checkRateLimitAsync, getClientIpFromHeaders } from "@/lib/rate-limit"
 import { COMPANY } from "@/lib/company"
@@ -16,11 +15,6 @@ const LOCK_DURATION_MS = 15 * 60 * 1000
 
 function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
-}
-
-function validatePassword(password: string): string | null {
-  if (password.length < 8) return "La password deve essere di almeno 8 caratteri."
-  return null
 }
 
 const LEGAL_FORMS: Record<string, string> = {
@@ -111,7 +105,7 @@ export async function registerCustomer(formData: RegisterData): Promise<{ succes
 
   const hashedPassword = await bcrypt.hash(password, 12)
 
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: email.toLowerCase(),
       name: companyName.trim(),

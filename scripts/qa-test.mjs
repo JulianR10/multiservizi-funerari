@@ -182,7 +182,7 @@ async function checkPage(page, url, label, checks = {}) {
     ["/recesso", "Diritto di Recesso"],
     ["/dati-societari", "Dati Societari"],
   ];
-  for (const [url, name] of legalPages) {
+  for (const [url] of legalPages) {
     const lp = await context.newPage();
     await checkPage(lp, url, `Legale (${url})`, {
       "Content heading": "h1",

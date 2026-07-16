@@ -1,5 +1,3 @@
-import { STATUS_LABELS } from "@/lib/order-status"
-
 const STEPS = ["confirmed", "shipped", "delivered"] as const
 
 const STEP_LABELS: Record<string, { label: string; description: string }> = {

@@ -14,7 +14,6 @@ const files = (await readdir(INPUT)).filter((f) =>
 );
 
 let ok = 0;
-let skip = 0;
 let fail = 0;
 
 const start = performance.now();

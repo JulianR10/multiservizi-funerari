@@ -13,17 +13,16 @@ type Category = {
 
 export function CatalogDropdown({ categories }: { categories: Category[] }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [expanded, setExpanded] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
-  useClickOutside(ref, () => { setIsOpen(false); setExpanded(null) }, isOpen)
+  useClickOutside(ref, () => { setIsOpen(false) }, isOpen)
 
   return (
     <div
       ref={ref}
       className="relative hidden md:block"
       onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => { setIsOpen(false); setExpanded(null) }}
+      onMouseLeave={() => { setIsOpen(false) }}
     >
       <button
         onClick={() => setIsOpen((prev) => !prev)}

@@ -103,7 +103,8 @@ export default function RegisterPage() {
     }
   }
 
-  function inputClass(field: keyof FormData) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function inputClass(_field: keyof FormData) {
     return "mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
   }
 

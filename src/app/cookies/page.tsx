@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { LegalPageLayout } from "@/components/LegalPageLayout"
 
 export const metadata: Metadata = {
   title: "Cookie Policy – Petrungaro Multiservizi",
@@ -6,10 +7,10 @@ export const metadata: Metadata = {
 
 export default function CookiePolicyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+    <LegalPageLayout>
       <h1 className="text-3xl font-bold text-zinc-900">Cookie Policy</h1>
 
-      <section className="mt-8 space-y-6 text-sm leading-7 text-zinc-600">
+      <div className="mt-8 space-y-4 text-sm leading-7 text-zinc-600">
         <p>
           Questa Cookie Policy spiega come Petrungaro Multiservizi utilizza i cookie e tecnologie
           simili sul sito petrungaro-multiservizi.it.
@@ -90,7 +91,7 @@ export default function CookiePolicyPage() {
         <p className="pt-4 text-xs text-zinc-400">
           Ultimo aggiornamento: 8 luglio 2026
         </p>
-      </section>
-    </div>
+      </div>
+    </LegalPageLayout>
   )
 }

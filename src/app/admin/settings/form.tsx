@@ -23,7 +23,8 @@ export function SettingsForm({ initial }: { initial: Initial }) {
     setValues({ ...values, [key]: value })
   }
 
-  function handleSubmit(formData: FormData) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function handleSubmit(_formData: FormData) {
     setError(null)
     setSuccess(false)
     startTransition(async () => {

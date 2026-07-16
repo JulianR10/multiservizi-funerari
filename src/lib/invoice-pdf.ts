@@ -85,7 +85,8 @@ export function generateInvoicePdf(data: InvoiceData): Buffer {
     formatPrice(item.price * item.quantity),
   ])
 
-  ;(doc as any).autoTable({
+  const autoTable = (doc as unknown as { autoTable: (opts: unknown) => void }).autoTable
+  autoTable({
     startY: 95,
     head: [["Prodotto", "Qtà", "Prezzo", "Importo"]],
     body: tableData,
@@ -108,7 +109,8 @@ export function generateInvoicePdf(data: InvoiceData): Buffer {
     margin: { left: 14, right: 14 },
   })
 
-  const finalY = (doc as jsPDF & { previousAutoTable?: { finalY: number } }).previousAutoTable?.finalY || 95
+  const finalY =
+    (doc as unknown as { previousAutoTable?: { finalY: number } }).previousAutoTable?.finalY || 95
   const summaryX = 120
   const valueX = 180
 

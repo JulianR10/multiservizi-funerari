@@ -18,7 +18,7 @@ export default function ContattiPage() {
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
         <div className="rounded-lg border border-zinc-200 bg-chalk p-6">
           <h2 className="font-heading text-lg font-semibold text-zinc-900">Telefono</h2>
-          <p className="mt-2 text-sm text-zinc-600">Reperibilità H24, 365 giorni all'anno</p>
+          <p className="mt-2 text-sm text-zinc-600">Reperibilità H24, 365 giorni all&apos;anno</p>
           <a href={`tel:${COMPANY.phone}`} className="mt-1 inline-block text-sm font-medium text-primary hover:text-primary-hover">
             {COMPANY.phone}
           </a>

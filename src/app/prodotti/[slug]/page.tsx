@@ -35,6 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${product.name} | Petrungaro Multiservizi`,
     description: product.description || `${product.name} — acquista online su Petrungaro Multiservizi.`,
+    alternates: { canonical: `${baseUrl}/prodotti/${slug}` },
     openGraph: {
       title: product.name,
       description: product.description || undefined,

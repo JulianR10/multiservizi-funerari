@@ -85,20 +85,6 @@ export function CheckoutButton() {
   const [customerSession, setCustomerSession] = useState<CustomerSession | null>(null)
   const csrfToken = useRef<string | null>(null)
 
-  if (hydrated && items.length === 0) {
-    return (
-      <div className="mt-12 text-center">
-        <p className="text-zinc-500">Carrello vuoto</p>
-        <Link
-          href="/prodotti"
-          className="mt-4 inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
-        >
-          Visualizza i prodotti
-        </Link>
-      </div>
-    )
-  }
-
   useEffect(() => {
     fetch("/api/csrf").then((r) => r.json()).then((d) => { csrfToken.current = d.token }).catch(() => {})
 
@@ -237,6 +223,20 @@ export function CheckoutButton() {
         ? "border-red-400 focus:border-red-500 focus:ring-red-500"
         : "border-zinc-300 focus:border-zinc-900 focus:ring-zinc-900"
     }`
+  }
+
+  if (hydrated && items.length === 0) {
+    return (
+      <div className="mt-12 text-center">
+        <p className="text-zinc-500">Carrello vuoto</p>
+        <Link
+          href="/prodotti"
+          className="mt-4 inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
+        >
+          Visualizza i prodotti
+        </Link>
+      </div>
+    )
   }
 
   return (
