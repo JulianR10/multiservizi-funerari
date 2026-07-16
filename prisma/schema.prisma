@@ -169,3 +169,10 @@ model PendingCheckout {
   @@index([expiresAt])
   @@index([consumed])
 }
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}

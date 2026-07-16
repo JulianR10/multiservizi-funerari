@@ -110,21 +110,29 @@ export default function AdminUsersPage() {
                         <p className="mt-2 text-sm italic text-zinc-500">Note: {user.notes}</p>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleAction(user.id, "approve")}
-                        disabled={processing === user.id}
-                        className="cursor-pointer rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleAction(user.id, "approve")}
+                          disabled={processing === user.id}
+                          className="cursor-pointer rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {processing === user.id ? "..." : "Approva"}
+                        </button>
+                        <button
+                          onClick={() => handleAction(user.id, "reject")}
+                          disabled={processing === user.id}
+                          className="cursor-pointer rounded-full bg-red-600 px-5 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          Rifiuta
+                        </button>
+                      </div>
+                      <a
+                        href={`/admin/users/${user.id}`}
+                        className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
                       >
-                        {processing === user.id ? "..." : "Approva"}
-                      </button>
-                      <button
-                        onClick={() => handleAction(user.id, "reject")}
-                        disabled={processing === user.id}
-                        className="cursor-pointer rounded-full bg-red-600 px-5 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-                      >
-                        Rifiuta
-                      </button>
+                        Vedi dettaglio →
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -145,11 +153,19 @@ export default function AdminUsersPage() {
                         <p className="text-sm font-medium text-zinc-900">{user.companyName || user.name}</p>
                         <p className="text-xs text-zinc-500">{user.email}</p>
                       </div>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        user.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                      }`}>
-                        {user.status === "APPROVED" ? "Approvato" : "Rifiutato"}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          user.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                        }`}>
+                          {user.status === "APPROVED" ? "Approvato" : "Rifiutato"}
+                        </span>
+                        <a
+                          href={`/admin/users/${user.id}`}
+                          className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
+                        >
+                          Dettaglio →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 ))}
