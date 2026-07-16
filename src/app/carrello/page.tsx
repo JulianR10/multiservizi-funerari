@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { CartContent } from "./content"
+import { ReorderConsumer } from "@/components/ReorderConsumer"
 
 type Props = {
   searchParams: Promise<{ cancelled?: string }>
@@ -10,6 +11,7 @@ export default async function CartPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+      <ReorderConsumer />
       <h1 className="font-heading text-3xl font-bold text-zinc-900">Carrello</h1>
       {cancelled === "true" && (
         <div className="mt-4 flex items-center justify-between rounded-md bg-yellow-50 p-3 text-sm text-yellow-700">
