@@ -1,101 +1,78 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { stripe } from "@/lib/stripe"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { setPaymentProvider, createCheckout } from "@/lib/payments"
+import { stripeAdapter } from "@/lib/payment-adapters/stripe-adapter"
+import { validateCheckoutItems, isValidEmail } from "@/lib/validators"
+
+setPaymentProvider(stripeAdapter)
 
 export async function POST(req: Request) {
-  const { items, email, address } = await req.json()
-
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: "Carrello vuoto" }, { status: 400 })
+  const ip = getClientIp(req)
+  const { allowed } = checkRateLimit(`checkout:${ip}`, 10, 60_000)
+  if (!allowed) {
+    return NextResponse.json({ error: "Troppe richieste. Riprova tra qualche minuto." }, { status: 429 })
   }
 
-  const customerEmail = email
-  if (!customerEmail) {
-    return NextResponse.json({ error: "Email richiesta per il checkout" }, { status: 400 })
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Body non valido" }, { status: 400 })
   }
 
-  const productIds = items.map((i: { productId: string }) => i.productId)
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, published: true },
-  })
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Body non valido" }, { status: 400 })
+  }
 
-  const productMap = new Map(products.map((p) => [p.id, p]))
+  const { items, email, address, billingAddress, shippingMethodId, userId } = body as Record<string, unknown>
 
-  for (const item of items) {
-    const product = productMap.get(item.productId)
-    if (!product) {
-      return NextResponse.json({
-        error: `Prodotto non trovato`,
-      }, { status: 400 })
+  const itemsResult = validateCheckoutItems(items)
+  if (!itemsResult.ok) {
+    return NextResponse.json({ error: itemsResult.error }, { status: 400 })
+  }
+
+  if (typeof email !== "string" || !isValidEmail(email)) {
+    return NextResponse.json({ error: "Email non valida" }, { status: 400 })
+  }
+
+  if (userId !== undefined && (typeof userId !== "string" || userId.length === 0 || userId.length > 64)) {
+    return NextResponse.json({ error: "userId non valido" }, { status: 400 })
+  }
+
+  if (shippingMethodId !== undefined && shippingMethodId !== null) {
+    if (typeof shippingMethodId !== "string" || shippingMethodId.length === 0 || shippingMethodId.length > 64) {
+      return NextResponse.json({ error: "shippingMethodId non valido" }, { status: 400 })
     }
-    if (product.stock < item.quantity) {
-      return NextResponse.json({
-        error: `Stock insufficiente per ${product.name} (disponibili: ${product.stock})`,
-      }, { status: 400 })
-    }
   }
 
-  const subtotal = items.reduce(
-    (acc: number, item: { productId: string; quantity: number }) => {
-      const product = productMap.get(item.productId)!
-      return acc + product.price * item.quantity
-    },
-    0
-  )
-  const tax = Math.round(subtotal * 0.22)
-
-  const lineItems = items.map((item: { productId: string; quantity: number }) => {
-    const product = productMap.get(item.productId)!
-    return {
-      price_data: {
-        currency: "eur",
-        product_data: {
-          name: product.name,
-          images: product.images,
-        },
-        unit_amount: product.price,
-      },
-      quantity: item.quantity,
-    }
-  })
-
-  lineItems.push({
-    price_data: {
-      currency: "eur",
-      product_data: { name: "IVA 22%", images: [] },
-      unit_amount: tax,
-    },
-    quantity: 1,
-  })
-
-  const metadata: Record<string, string> = {
-    guestEmail: customerEmail,
-    items: JSON.stringify(items.map((i: { productId: string; quantity: number }) => ({ productId: i.productId, quantity: i.quantity }))),
-  }
-
-  if (address) {
-    metadata.shippingAddress = JSON.stringify({
-      firstName: address.firstName || "",
-      lastName: address.lastName || "",
-      company: address.company || "",
-      address: address.address || "",
-      address2: address.address2 || "",
-      city: address.city || "",
-      province: address.province || "",
-      postalCode: address.postalCode || "",
-      country: "IT",
-      phone: address.phone || "",
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId as string },
+      select: { role: true, status: true },
     })
+    if (!user || user.role !== "user" || user.status !== "APPROVED") {
+      return NextResponse.json({ error: "Account non abilitato all'acquisto." }, { status: 403 })
+    }
   }
 
-  const checkout = await stripe.checkout.sessions.create({
-    customer_email: customerEmail,
-    line_items: lineItems,
-    mode: "payment",
-    success_url: `${process.env.NEXT_PUBLIC_URL}/ordine-confermato?success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/cart?cancelled=true`,
-    metadata,
-  })
+  try {
+    const result = await createCheckout({
+      items: itemsResult.items,
+      customerEmail: email as string,
+      userId: typeof userId === "string" ? userId : undefined,
+      shippingMethodId: typeof shippingMethodId === "string" ? shippingMethodId : undefined,
+      shippingAddress: (address && typeof address === "object" ? address : undefined) as
+        | Record<string, string>
+        | undefined,
+      billingAddress: (billingAddress && typeof billingAddress === "object" ? billingAddress : undefined) as
+        | Record<string, string>
+        | undefined,
+    })
 
-  return NextResponse.json({ url: checkout.url })
+    return NextResponse.json({ url: result.url })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Errore durante il checkout"
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
 }

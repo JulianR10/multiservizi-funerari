@@ -5,7 +5,7 @@ import { assertAdminPage } from "@/lib/admin-guard"
 export default async function NewProductPage() {
   await assertAdminPage()
 
-  const categories: any[] = await prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   })
 

@@ -9,6 +9,11 @@ import { CartProvider } from "@/components/CartProvider";
 import { BackToTop } from "@/components/BackToTop";
 import { CookieBanner } from "@/components/CookieBanner";
 import { JsonLd } from "@/components/JsonLd";
+import { CartSlideOver } from "@/components/CartSlideOver";
+import { FloatingCartButton } from "@/components/FloatingCartButton";
+import { Toaster } from "sonner";
+import { HideOnAdmin, MainWithPadding } from "@/components/HideOnAdmin";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -62,21 +67,56 @@ export default function RootLayout({
       lang="it"
       className={`${cormorant.variable} ${lato.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-chalk" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-sans bg-chalk text-balance" suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
+        >
+          Vai al contenuto principale
+        </a>
         <JsonLd />
         <CartProvider>
-          <Suspense fallback={<div className="h-[70px] animate-pulse bg-secondary-bg" />}>
-            <NavbarWrapper>
-              <Navbar />
-            </NavbarWrapper>
+          <Suspense fallback={null}>
+            <HideOnAdmin>
+              <Suspense fallback={<div className="h-[70px] animate-pulse bg-secondary-bg" />}>
+                <NavbarWrapper>
+                  <Navbar />
+                </NavbarWrapper>
+              </Suspense>
+            </HideOnAdmin>
           </Suspense>
-          <main className="flex-1">{children}</main>
-          <Suspense fallback={<div className="h-64 animate-pulse bg-chalk" />}>
-            <Footer />
+          <Suspense fallback={null}>
+            <MainWithPadding>{children}</MainWithPadding>
+          </Suspense>
+          <Suspense fallback={null}>
+            <HideOnAdmin>
+              <Suspense fallback={<div className="h-64 animate-pulse bg-chalk" />}>
+                <Footer />
+              </Suspense>
+            </HideOnAdmin>
           </Suspense>
         </CartProvider>
+        <CartSlideOver />
+        <FloatingCartButton />
         <BackToTop />
-        <CookieBanner />
+        <Suspense fallback={null}>
+          <HideOnAdmin>
+            <CookieBanner />
+          </HideOnAdmin>
+        </Suspense>
+        <OfflineBanner />
+        <Toaster
+          position="bottom-left"
+          toastOptions={{
+            style: {
+              background: "#EDE5DD",
+              color: "#1a1a1a",
+              border: "1px solid #d4ccc4",
+              fontSize: "0.875rem",
+            },
+          }}
+          aria-live="polite"
+        />
       </body>
     </html>
   );

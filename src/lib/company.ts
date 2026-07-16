@@ -1,0 +1,17 @@
+export const COMPANY = {
+  name: "MULTISERVIZI FUNEBRI SRL",
+  displayName: "Petrungaro Multiservizi",
+  legalForm: "Società a Responsabilità Limitata",
+  address: "Via Trento, 11, II° Trav.",
+  city: "87030 Fiumefreddo Bruzio (CS)",
+  sedeLegale: "Via Sopra le Mura, 6 — 87030 Fiumefreddo Bruzio (CS)",
+  piva: "03164970786",
+  rea: "Cosenza - REA 215445 - Cap. Soc. € 3.000 i.v.",
+  phone: "+39 0982 71580",
+  cellulare: "+39 335 6691440",
+  email: "mf@multiservizifunerarisrl.com",
+  infoEmail: "info@multiservizifunerarisrl.com",
+  pec: "multiservizifunebrisrl@pec.it",
+  ufficioOrari: "8:00–12:00 / 14:00–18:00",
+  domain: "multiservizifunerarisrl.com",
+} as const

@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react"
 import { formatPrice } from "@/lib/format"
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/order-status"
+import { OrderTimeline } from "@/components/OrderTimeline"
 
 type OrderItem = {
   id: string
@@ -23,6 +24,7 @@ type Order = {
   items: OrderItem[]
   trackingNumber: string | null
   trackingUrl: string | null
+  estimatedDelivery: string | null
 }
 
 export function TrackForm({ initialEmail }: { initialEmail: string }) {
@@ -85,7 +87,7 @@ export function TrackForm({ initialEmail }: { initialEmail: string }) {
         <button
           type="submit"
           disabled={loading || !email.trim()}
-          className="rounded-full bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50 cursor-pointer self-center sm:self-auto"
+          className="self-center cursor-pointer rounded-full bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50 sm:self-auto"
         >
           {loading ? "Ricerca in corso..." : "Cerca"}
         </button>
@@ -105,7 +107,7 @@ export function TrackForm({ initialEmail }: { initialEmail: string }) {
       )}
 
       {orders && orders.length > 0 && (
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-6">
           {orders.map((order) => (
             <div key={order.id} className="rounded-lg border border-zinc-200 bg-chalk p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -135,6 +137,8 @@ export function TrackForm({ initialEmail }: { initialEmail: string }) {
                 </span>
               </div>
 
+              <OrderTimeline currentStatus={order.status} />
+
               <ul className="mt-4 divide-y divide-zinc-100">
                 {order.items.map((item) => (
                   <li key={item.id} className="flex justify-between py-2 text-sm">
@@ -156,6 +160,19 @@ export function TrackForm({ initialEmail }: { initialEmail: string }) {
                 <span className="text-zinc-500">IVA 22%</span>
                 <span className="text-zinc-900">{formatPrice(order.tax)}</span>
               </div>
+
+              {order.estimatedDelivery && (
+                <div className="mt-4 rounded-lg bg-primary/5 p-3 text-sm">
+                  <span className="font-medium text-primary">Consegna prevista: </span>
+                  <span className="text-zinc-600">
+                    {new Date(order.estimatedDelivery).toLocaleDateString("it-IT", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              )}
 
               {order.trackingNumber && (
                 <div className="mt-4 rounded-md bg-blue-50 p-3 text-sm">

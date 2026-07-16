@@ -8,13 +8,31 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String?
-  role      String   @default("user")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String?   @unique
+  name            String?
+  password        String?
+  role            String    @default("user")
+  status          String    @default("PENDING")
+  companyName     String?
+  vatNumber       String?
+  taxCode         String?
+  sdiCode         String?
+  legalForm       String?
+  businessType    String?
+  phone           String?
+  city            String?
+  province        String?
+  address         String?
+  postalCode      String?
+  notes           String?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  resetToken          String?
+  resetTokenExpires   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   orders   Order[]
   addresses Address[]
@@ -54,6 +72,21 @@ model Product {
   orderItems OrderItem[]
 }
 
+model ShippingMethod {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  description      String?
+  price            Int
+  estimatedDaysMin Int?
+  estimatedDaysMax Int?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  orders Order[]
+}
+
 model Order {
   id              String      @id @default(cuid())
   guestEmail      String?
@@ -65,8 +98,9 @@ model Order {
   status          String      @default("pending")
   paymentStatus   String      @default("pending")
   paymentMethod   String?
-  stripePaymentId String?
-  stripePaymentIntentId String?
+  stripePaymentId String?  @unique
+  stripePaymentIntentId String?  @unique
+  stripeCustomerId String?
   shippingAddressId String?
   shippingAddress  Address?   @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
   billingAddressId String?
@@ -75,6 +109,9 @@ model Order {
   trackingUrl     String?
   notes           String?
   invoiceNumber   String?
+  shippingMethodId String?
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+  estimatedDelivery DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -115,4 +152,20 @@ model Address {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PendingCheckout {
+  id               String   @id @default(cuid())
+  guestEmail       String
+  userId           String?
+  items            Json
+  shippingMethodId String?
+  shippingAddress  Json?
+  billingAddress   Json?
+  consumed         Boolean  @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([consumed])
 }

@@ -6,7 +6,7 @@ export async function GET() {
   const unauthorized = await assertAdminApi()
   if (unauthorized) return unauthorized
 
-  const products: any[] = await prisma.product.findMany({
+  const products = await prisma.product.findMany({
     include: { category: true },
     orderBy: { createdAt: "desc" },
   })

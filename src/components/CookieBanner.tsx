@@ -28,12 +28,14 @@ export function CookieBanner() {
           </Link>
           .
         </p>
-        <button
-          onClick={dismiss}
-          className="shrink-0 rounded-full bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-hover cursor-pointer"
-        >
-          Ho capito
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            onClick={dismiss}
+            className="cursor-pointer rounded-full bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-hover"
+          >
+            Ho capito
+          </button>
+        </div>
       </div>
     </div>
   )

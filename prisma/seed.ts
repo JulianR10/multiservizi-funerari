@@ -2,212 +2,321 @@ import "dotenv/config"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { Pool } from "pg"
+import bcrypt from "bcryptjs"
+import { readdirSync } from "node:fs"
+import { join } from "node:path"
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({
   adapter: new PrismaPg(pool),
 })
 
-async function main() {
-  const categories: { name: string; slug: string; children?: { name: string; slug: string }[] }[] = [
-    {
-      name: "Promozioni",
-      slug: "promozioni",
-    },
-    {
-      name: "Accessori per cofani",
-      slug: "accessori-per-cofani",
-      children: [
-        { name: "Alzacoperchi", slug: "alzacoperchi" },
-        { name: "Parure/Completi per cofani", slug: "parure-completi-per-cofani" },
-        { name: "Minuteria", slug: "minuteria" },
-      ],
-    },
-    {
-      name: "Arredi & Velluti",
-      slug: "arredi-velluti",
-      children: [
-        { name: "Accessori di arredamento", slug: "accessori-di-arredamento" },
-        { name: "Copricarrelli", slug: "copricarrelli" },
-        { name: "Fondali", slug: "fondali" },
-        { name: "Portamanifesti e coccarde", slug: "portamanifesti-e-coccarde" },
-        { name: "Tappeti per camera ardente", slug: "tappeti-per-camera-ardente" },
-        { name: "Tavoli firme", slug: "tavoli-firme" },
-      ],
-    },
-    {
-      name: "Esposizione",
-      slug: "esposizione",
-      children: [
-        { name: "Candelieri", slug: "candelieri" },
-        { name: "Camere ardenti per case funerarie", slug: "camere-ardenti-per-case-funerarie" },
-        { name: "Colonne & Dipinti", slug: "colonne-dipinti" },
-        { name: "Lumini e Accessori", slug: "lumini-e-accessori" },
-        { name: "Portaofferte", slug: "portaofferte" },
-        { name: "Fondali Roll-up", slug: "fondali-roll-up" },
-      ],
-    },
-    {
-      name: "Articoli Igienici – Sanitari",
-      slug: "articoli-igienici-sanitari",
-      children: [
-        { name: "Disinfettanti", slug: "disinfettanti" },
-        { name: "Indumenti protettivi", slug: "indumenti-protettivi" },
-        { name: "Prodotti assorbenti", slug: "prodotti-assorbenti" },
-        { name: "Trasporto e recupero salme", slug: "trasporto-e-recupero-salme" },
-        { name: "Valvole depuratrici", slug: "valvole-depuratrici" },
-        { name: "Vestizione e preparazione salma", slug: "vestizione-e-preparazione-salma" },
-      ],
-    },
-    {
-      name: "Articoli per Infanti",
-      slug: "articoli-per-infanti",
-    },
-    {
-      name: "Articoli per saldatura",
-      slug: "articoli-per-saldatura",
-      children: [
-        { name: "Bombole gas", slug: "bombole-gas" },
-        { name: "Flussanti/stagno", slug: "flussanti-stagno" },
-        { name: "Mazze", slug: "mazze" },
-        { name: "Ricambi", slug: "ricambi" },
-        { name: "Saldatori", slug: "saldatori" },
-        { name: "Valigette", slug: "valigette" },
-        { name: "Sigillanti/Imballaggio", slug: "sigillanti-imballaggio" },
-      ],
-    },
-    {
-      name: "Carrelli e Catafalchi",
-      slug: "carrelli-e-catafalchi",
-      children: [
-        { name: "Carrelli", slug: "carrelli" },
-        { name: "Catafalchi", slug: "catafalchi" },
-      ],
-    },
-    {
-      name: "Cartotecnica",
-      slug: "cartotecnica",
-      children: [
-        { name: "Biglietti lutto", slug: "biglietti-lutto" },
-        { name: "Libri firma", slug: "libri-firma" },
-        { name: "Ricordini lutto", slug: "ricordini-lutto" },
-      ],
-    },
-    {
-      name: "Cassoni",
-      slug: "cassoni",
-      children: [
-        { name: "Cassoni /cassettine ossarie", slug: "cassoni-cassettine-ossarie" },
-        { name: "Frigoriferi per salme e cassoni", slug: "frigoriferi-per-salme-e-cassoni" },
-      ],
-    },
-    {
-      name: "Coroncine & Oggettistica",
-      slug: "coroncine-oggettistica",
-    },
-    {
-      name: "Gadget",
-      slug: "gadget",
-    },
-    {
-      name: "Imbottiture Veli & Coltrini",
-      slug: "imbottiture-veli-coltrini",
-      children: [
-        { name: "Coltrini", slug: "coltrini" },
-        { name: "Imbottiture a sacco", slug: "imbottiture-a-sacco" },
-        { name: "Imbottiture su cartone", slug: "imbottiture-su-cartone" },
-        { name: "Veli coprisalma", slug: "veli-coprisalma" },
-        { name: "Veli coprizinco e copricassa aerografati", slug: "veli-coprizinco-e-copricassa-aerografati" },
-      ],
-    },
-    {
-      name: "Targhe & Pantografi",
-      slug: "targhe-pantografi",
-      children: [
-        { name: "Provvisori e cimiteriale", slug: "provvisori-e-cimiteriale" },
-        { name: "Pantografi e Incisori", slug: "pantografi-e-incisori" },
-        { name: "Placche per cofani", slug: "placche-per-cofani" },
-        { name: "Targhe alluminio", slug: "targhe-alluminio" },
-        { name: "Targhe in ottone", slug: "targhe-in-ottone" },
-      ],
-    },
-    {
-      name: "Urne Cinerarie",
-      slug: "urne-cinerarie",
-      children: [
-        { name: "Urne artistiche", slug: "urne-artistiche" },
-        { name: "Urne in legno", slug: "urne-in-legno" },
-        { name: "Urne in metallo", slug: "urne-in-metallo" },
-        { name: "Urne in ceramica", slug: "urne-in-ceramica" },
-        { name: "Urne biodegradabili", slug: "urne-biodegradabili" },
-        { name: "Urne per animali", slug: "urne-per-animali" },
-      ],
-    },
-  ]
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+}
 
-  for (const cat of categories) {
-    const parent = await prisma.category.create({
-      data: { name: cat.name, slug: cat.slug },
-    })
-
-    if (cat.children) {
-      for (const child of cat.children) {
-        await prisma.category.create({
-          data: { name: child.name, slug: child.slug, parentId: parent.id },
-        })
-      }
-    }
+async function mapProductImages(productName: string): Promise<string[]> {
+  const slug = slugify(productName)
+  const dir = join(process.cwd(), "public", "images", "products")
+  let files: string[] = []
+  try {
+    files = readdirSync(dir)
+  } catch {
+    return []
   }
 
-  const allCats = await prisma.category.findMany()
-  const catMap = Object.fromEntries(allCats.map((c) => [c.slug, c.id]))
+  const webpFiles = files.filter((f) => f.endsWith(".webp"))
 
-  const productData = [
-    { name: "Cofano in zinco modello classico", price: 89900, cat: "accessori-per-cofani", featured: true, stock: 10 },
-    { name: "Candeliero in ottone 5 pz", price: 24900, cat: "candelieri", featured: true, stock: 25 },
-    { name: "Urna cineraria in legno noce", price: 15900, cat: "urne-in-legno", featured: true, stock: 15 },
-    { name: "Tappeto per camera ardente cm 200x300", price: 8900, cat: "tappeti-per-camera-ardente", stock: 20 },
-    { name: "Libro firma lutto copertina rigida", price: 2900, cat: "libri-firma", stock: 50 },
-    { name: "Disinfettante superfici 5L", price: 1900, cat: "disinfettanti", stock: 100 },
-    { name: "Targa alluminio personalizzata", price: 4900, cat: "targhe-alluminio", stock: 30 },
-    { name: "Imbottitura a sacco bianca", price: 3900, cat: "imbottiture-a-sacco", stock: 40 },
-    { name: "Coltrino raso pregiato", price: 12900, cat: "coltrini", featured: true, stock: 12 },
-    { name: "Set candelieri plexiglass curvo", price: 34900, cat: "candelieri", featured: true, stock: 8 },
+  const matches = webpFiles
+    .filter((f) => {
+      const base = f.replace(/ \(\d+\)\.webp$/, "").replace(/\.webp$/, "")
+      return base.includes(slug) || slug.includes(base)
+    })
+    .sort()
+    .map((f) => `/images/products/${f}`)
+
+  return matches
+}
+
+type SeedProduct = {
+  name: string
+  variants?: string[]
+}
+
+async function main() {
+  await prisma.orderItem.deleteMany()
+  await prisma.order.deleteMany()
+  await prisma.product.deleteMany()
+  await prisma.category.deleteMany()
+  await prisma.address.deleteMany()
+  await prisma.shippingMethod.deleteMany()
+
+  const categoryData = [
+    { name: "Linea Marmi", slug: "linea-marmi" },
+    { name: "Accessori Cimiteriali", slug: "accessori-cimiteriali" },
+    { name: "Articoli Funebri", slug: "articoli-funebri" },
+    { name: "Fotoceramiche", slug: "fotoceramiche" },
   ]
 
+  const createdCategories: Record<string, string> = {}
+  for (const cat of categoryData) {
+    const created = await prisma.category.create({
+      data: { name: cat.name, slug: cat.slug },
+    })
+    createdCategories[cat.slug] = created.id
+  }
+
+  const articoliFunebriId = createdCategories["articoli-funebri"]
+
+  const productData: SeedProduct[] = [
+    // ── Prodotti singoli (senza varianti) ──
+    { name: "Vite a croce" },
+    { name: "Ferma scarpe" },
+    { name: "Copri vite a rosa strass" },
+    { name: "Mentoniere a vite" },
+    { name: "Viti a farfalla" },
+    { name: "Cappello del prete" },
+    { name: "Chiodo croce 7×25" },
+    { name: "Coprivite margherita" },
+    { name: "Rosari in plastica" },
+    { name: "Rose decorative con strass e vite" },
+    { name: "Viti decorative con strass vari" },
+    { name: "Anelli ferma mani regolabili" },
+    { name: "Ferma scarpe in ottone" },
+    { name: "Posizionatore per mani" },
+    { name: "Fermabocca in plastica" },
+    { name: "Pellicola autosigillante" },
+    { name: "Deosalm" },
+    { name: "Enzisalm" },
+    { name: "Odorstop" },
+    { name: "Deodor-Bag" },
+    { name: "Micro-Pure" },
+    { name: "Secure-Mani" },
+    { name: "Hydro Stop Bag" },
+    { name: "Hydro Stop 200 gr" },
+    { name: "Flussante per saldatura" },
+    { name: "Bombola usa e getta" },
+    { name: "Spray battericida" },
+    { name: "Rossetti – Tavolozza 6" },
+    { name: "Tintura per labbra" },
+    { name: "Cera da ricostruzione" },
+    { name: "Colla" },
+    { name: "Filo di sutura" },
+    { name: "Soluzione leva smalto" },
+    { name: "Calzari in TNT" },
+    { name: "Copricapo in TNT" },
+    { name: "Camice in TNT" },
+    { name: "Sacco in juta" },
+    { name: "Sacco in tessuto elasticizzato" },
+    { name: "Targhe adesive ovali e rettangolari" },
+    { name: "Foglio per targhetta rettangolare" },
+    { name: "Foglio per targhetta ovale" },
+    { name: "Fogli in memoriam" },
+    { name: "Scatoline porta offerta" },
+    { name: "Urna Swarovski" },
+    { name: "Urna Linea Venezia" },
+    { name: "Urna porcellana bianco" },
+    { name: "Urna cineraria in acciaio verniciato – Rosa decorativa bianca" },
+    { name: "Urna acciaio nera con croce oro" },
+    { name: "Urna Athena" },
+    { name: "Urna Diana" },
+    { name: "Urna Dafne" },
+    { name: "Urna Medea" },
+    { name: "Urna Rubino C24 – Rovere con rosa rossa" },
+    { name: "Urna Rubino C1 – Frassino con stampa calla" },
+    { name: "Urna Rubino D10 – Frassino con orchidea incisa" },
+    { name: "Urna Gardenia C24 – Frassino con ibiscus rosa" },
+    { name: "Urna Rubino – Noce" },
+    { name: "Urna Rubino B8C8 – Frassino" },
+    { name: "Urna Libro D7 – Frassino" },
+    { name: "Urna Zaffiro – Mogano" },
+    { name: "Urna Turchese – Mogano" },
+    { name: "Absol" },
+    { name: "K Sap gel" },
+    { name: "Bio Funer-Bag" },
+    { name: "Valigia porta saldatore" },
+    { name: "Acido flussante per saldatura" },
+    { name: "Telo biodegradabile" },
+    { name: "Saldatore Diana" },
+    { name: "Raccoglitore porta offerte" },
+    { name: "Guanto Hirex NT" },
+    { name: "Guanto Walking Nitrile" },
+    { name: "Guanto Walking Extreme" },
+    { name: "Guanto Export 631" },
+    { name: "Guanto Latex Pro" },
+    { name: "Guanto Hirex" },
+    { name: "Guanto Satinox" },
+    { name: "Croce in legno Cristo in metallo 15 cm" },
+    { name: "Croce argentata e dorata 13 cm" },
+    { name: "Croce in legno Cristo dorato 13 cm" },
+    { name: "Croce in legno 11 cm" },
+    { name: "Siringa formalina monouso" },
+    { name: "Cristo in ottone" },
+    { name: "Sacro Cuore in ottone" },
+    { name: "Passione di Cristo in ottone" },
+    { name: "Madonna con Bambino in ottone" },
+    { name: "Padre Pio in ottone" },
+    { name: "Sacra Famiglia in ottone" },
+    { name: "Cristo in preghiera in ottone" },
+    { name: "Croce in ottone – Pastore con gregge" },
+    { name: "Croce con decorazioni in ottone" },
+    { name: "Cristo in preghiera (R)" },
+    { name: "Guanto Hi Risks" },
+    { name: "Valigia per saldatore" },
+    { name: "Colla spray" },
+    { name: "Stampante nastri senza PC" },
+    { name: "Croce liscia – Ottone lucido 111/S" },
+    { name: "Croce rame con Cristo 158/S" },
+    { name: "Croce in silver liscia 145/S" },
+    { name: "Croce con punto luce" },
+    { name: "Croce con strass e rosa" },
+    { name: "Maniglia semplice" },
+    { name: "Ossario in zinco" },
+    { name: "Tuta protettiva Tyvek" },
+    { name: "Cassetta per arti in zinco 80×29 cm" },
+    { name: "Colla manifesti" },
+    { name: "Camera ardente completa" },
+    { name: "Camera ardente BLU" },
+    { name: "Veli e imbottiture" },
+
+    // ── Prodotti con varianti (metadata.variants) ──
+    { name: "Viti Ø 4,5 mm – Oro", variants: ["H₁ 60", "H₂ 50", "H₃ 40", "H₄ 30"] },
+    { name: "Sfere in ottone", variants: ["Naturale", "Nichel", "Rame"] },
+    { name: "Alza coperchio", variants: ["Ottone lucido", "Nichel"] },
+    { name: "Mentoniere biodegradabile", variants: ["Medium", "Large"] },
+    { name: "Fermaocchi in plastica", variants: ["Large", "Medium"] },
+    { name: "Lacca colorata", variants: ["Castano", "Biondo"] },
+    { name: "Sacco in TNT", variants: ["65 gr Bianco", "130 gr BLU"] },
+    { name: "Libri firme", variants: ["Colomba", "Padre Pio", "Cristo", "Madonna", "Ramo spiga", "Tramonto", "Fiori", "Croce"] },
+    { name: "Porta documenti", variants: ["Blu", "Bordeaux"] },
+    { name: "Porta libro firme", variants: ["Grande Blu", "Grande Bordeaux", "Piccolo Blu", "Piccolo Bordeaux"] },
+    { name: "Targhe in metallo", variants: [
+      "Grandi ovali fondo oro bordo nero", "Grandi ovali fondo nero bordo oro",
+      "Grandi rettangolari fondo oro bordo nero", "Grandi rettangolari fondo nero bordo oro",
+      "Piccole ovali fondo oro bordo nero", "Piccole ovali fondo nero bordo oro",
+      "Piccole rettangolari fondo oro bordo nero", "Piccole rettangolari fondo nero bordo oro",
+    ]},
+    { name: "Urna cineraria in acciaio verniciato", variants: ["Nero", "Marrone"] },
+    { name: "Urna cineraria dispersione ceneri", variants: ["Verde scuro", "Blu", "Argento"] },
+    { name: "Guanti per portantini in cotone", variants: ["Bianchi", "Neri", "Blu"] },
+    { name: "Flacone dispensatore per acido con pennellino", variants: ["Ceabis", "Marini"] },
+    { name: "Mazza Long Life", variants: ["500 g", "300 g"] },
+    { name: "Croce metallo 11 cm", variants: ["Oro", "Argento"] },
+    { name: "Croce in legno Cristo 15 cm", variants: ["Argentato", "Dorato"] },
+    { name: "Croce in legno Cristo 11 cm", variants: ["Argentato", "Dorato"] },
+    { name: "Immagine sacra", variants: ["Cristo Risorto", "Passione di Cristo"] },
+    { name: "Madonna in ottone", variants: ["Standard", "Piccola"] },
+    { name: "Fregio in ottone", variants: ["Cristo", "Madonna"] },
+    { name: "Miniatura", variants: ["Cristo", "Padre Pio"] },
+    { name: "Croce con Cristo 143/S", variants: ["Ottone lucido", "Rame"] },
+    { name: "Croce con strass", variants: ["Dritti", "Cuori"] },
+    { name: "Maniglia con strass", variants: ["Singolo", "Doppio"] },
+    { name: "Carrello a fisarmonica porta bara", variants: ["Verde", "Nero"] },
+    { name: "Sabbia per incisioni lapidi", variants: ["F40 – grossa", "F36 – media", "F60 – piccola"] },
+    { name: "Vinile plotter scrittura incisioni", variants: ["Blu", "Beige"] },
+    { name: "Paravento funebre", variants: ["San Francesco", "La Pietà"] },
+    { name: "Valvola depuratrice", variants: ["Standard", "Economy"] },
+    { name: "Cartuccia", variants: ["Oro", "Argento", "Nera"] },
+    { name: "Nastro per coronella 100mm 50m – LORD", variants: ["Verde scuro", "Verde chiaro", "Viola chiaro", "Viola scuro", "Bianco", "Bordeaux", "Ocra"] },
+    { name: "Nastro per coronella 100mm 50m – ATHENIS", variants: ["Bordeaux", "Viola scuro", "Viola chiaro"] },
+    { name: "Nastro per coronella 100mm 50m – CLEOPATRA", variants: ["Ocra chiaro", "Ocra scuro"] },
+  ]
+
+  let created = 0
+  let withImages = 0
+  let withVariants = 0
   for (const p of productData) {
-    const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+    const slug = slugify(p.name)
+    const images = await mapProductImages(p.name)
+    const metadata = p.variants
+      ? { variants: p.variants.map((v) => ({ label: v, value: slugify(v) })) }
+      : undefined
+
     await prisma.product.create({
       data: {
         name: p.name,
         slug,
-        price: p.price,
-        comparePrice: null,
-        categoryId: catMap[p.cat] || allCats[0].id,
-        stock: p.stock,
+        price: 0,
+        description: null,
+        categoryId: articoliFunebriId,
+        stock: 0,
         published: true,
-        featured: p.featured || false,
-        description: `${p.name}. Prodotto di alta qualità, ideale per uso professionale.`,
-        images: [],
+        images,
+        metadata: metadata ?? undefined,
+      },
+    })
+    created++
+    if (images.length > 0) withImages++
+    if (metadata) withVariants++
+  }
+
+  const passwordHash = await bcrypt.hash("admin123", 12)
+  await prisma.user.upsert({
+    where: { email: "admin@petrungaro.it" },
+    update: { username: "admin", password: passwordHash },
+    create: {
+      email: "admin@petrungaro.it",
+      username: "admin",
+      name: "Admin",
+      password: passwordHash,
+      role: "admin",
+      status: "APPROVED",
+    },
+  })
+
+  const testPassword = await bcrypt.hash("test1234", 12)
+  await prisma.user.upsert({
+    where: { email: "rossi@test.it" },
+    update: {},
+    create: {
+      email: "rossi@test.it",
+      name: "Mario Rossi",
+      password: testPassword,
+      role: "user",
+      status: "APPROVED",
+      companyName: "Onoranze Funebri Rossi",
+      vatNumber: "01234567890",
+      sdiCode: "ABC123",
+      legalForm: "DITTA_INDIVIDUALE",
+      businessType: "ONORANZE_FUNEBRI",
+      phone: "+39 333 1234567",
+      city: "Fiumefreddo Bruzio",
+      province: "CS",
+      address: "Via Roma 12",
+      postalCode: "87030",
+    },
+  })
+
+  const shippingMethods = [
+    { name: "Standard", slug: "standard", price: 790, estimatedDaysMin: 3, estimatedDaysMax: 7, description: "Consegna in 3-7 giorni lavorativi" },
+    { name: "Espresso", slug: "espresso", price: 1490, estimatedDaysMin: 1, estimatedDaysMax: 2, description: "Consegna in 1-2 giorni lavorativi" },
+    { name: "Ritiro in sede", slug: "ritiro-in-sede", price: 0, estimatedDaysMin: null, estimatedDaysMax: null, description: "Ritira il tuo ordine presso il nostro punto vendita" },
+  ]
+
+  for (const method of shippingMethods) {
+    await prisma.shippingMethod.create({
+      data: {
+        name: method.name,
+        slug: method.slug,
+        price: method.price,
+        description: method.description,
+        estimatedDaysMin: method.estimatedDaysMin ?? undefined,
+        estimatedDaysMax: method.estimatedDaysMax ?? undefined,
       },
     })
   }
 
-  await prisma.user.upsert({
-    where: { email: "admin@petrungaro.it" },
-    update: {},
-    create: {
-      email: "admin@petrungaro.it",
-      name: "Admin",
-      password: "$2a$12$LJ3m4ys3Lg3YOCwKkYcKfeRKm1Qo5mPbYq1y5Z5q0e5y5q0e5y5qO",
-      role: "admin",
-    },
-  })
-
   console.log("Seed completato!")
-  console.log(`- ${categories.length} categorie create (con sottocategorie)`)
-  console.log(`- ${productData.length} prodotti creati`)
-  console.log("- Admin: admin@petrungaro.it")
+  console.log(`- ${categoryData.length} categorie create`)
+  console.log(`- ${created} prodotti creati (${withImages} con immagini, ${withVariants} con varianti)`)
+  console.log(`- ${shippingMethods.length} metodi di spedizione creati`)
+  console.log("- Admin: admin@petrungaro.it / admin123")
+  console.log("- Test B2B: rossi@test.it / test1234 (APPROVED)")
 }
 
 main()

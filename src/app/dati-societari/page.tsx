@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { COMPANY } from "@/lib/company"
 
 export const metadata: Metadata = {
   title: "Dati Societari | Petrungaro Multiservizi",
@@ -6,11 +7,14 @@ export const metadata: Metadata = {
 }
 
 const dati = [
-  { title: "Ragione sociale", value: "MULTISERVIZI FUNEBRI SRL" },
-  { title: "Sede operativa", value: <>Via Trento, 11, II° Trav.<br />87030 Fiumefreddo Bruzio (CS)</> },
-  { title: "Sede legale", value: <>Via Sopra le Mura, 6<br />87030 Fiumefreddo Bruzio (CS)</> },
-  { title: "Partita IVA", value: "03164970786" },
-  { title: "REA", value: "Cosenza - REA 215445 - Cap. Soc. € 3.000 i.v." },
+  { title: "Ragione sociale", value: COMPANY.name },
+  { title: "Sede operativa", value: <>{COMPANY.address}<br />{COMPANY.city}</> },
+  { title: "Sede legale", value: COMPANY.sedeLegale },
+  { title: "Partita IVA", value: COMPANY.piva },
+  { title: "REA", value: COMPANY.rea },
+  { title: "PEC", value: COMPANY.pec },
+  { title: "Telefono", value: COMPANY.phone },
+  { title: "Cellulare", value: COMPANY.cellulare },
   { title: "Assistenza", value: "Reperibilità H24, 365 giorni all'anno" },
 ]
 

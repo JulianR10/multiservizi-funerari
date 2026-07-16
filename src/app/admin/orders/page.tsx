@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { formatPrice } from "@/lib/format"
 import { STATUS_LABELS, STATUS_COLORS, STATUS_OPTIONS } from "@/lib/order-status"
-import { updateOrder } from "@/app/actions/admin"
+import { updateOrder, exportOrdersCSV } from "@/app/actions/admin"
 
 type Order = {
   id: string
@@ -25,31 +25,48 @@ export default function AdminOrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null)
   const [editingTracking, setEditingTracking] = useState<string | null>(null)
   const [trackingForm, setTrackingForm] = useState({ number: "", url: "" })
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
-  async function fetchOrders() {
+  async function fetchOrders(pageNum: number, query?: string) {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/orders")
+      const params = new URLSearchParams({ page: String(pageNum) })
+      if (query) params.set("q", query)
+      const res = await fetch(`/api/admin/orders?${params}`)
       if (res.status === 401) {
         router.push("/auth/login")
         return
       }
       const data = await res.json()
-      setOrders(data)
+      setOrders(data.orders)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
     } catch {
       console.error("Errore nel caricamento ordini")
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchOrders(page, debouncedQuery)
+  }, [page, debouncedQuery])
 
   async function updateStatus(orderId: string, status: string) {
     setSavingId(orderId)
@@ -106,10 +123,75 @@ export default function AdminOrdersPage() {
     )
   }
 
+  async function handleExportCSV() {
+    const result = await exportOrdersCSV()
+    if (!result.success) return
+    const blob = new Blob([result.data], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `ordini-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-zinc-900">Gestione Ordini</h1>
-      <p className="mt-1 text-sm text-zinc-500">{orders.length} ordini totali</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-zinc-900">Gestione Ordini</h1>
+          <p className="mt-1 text-sm text-zinc-500">{total} ordini totali</p>
+        </div>
+        <button
+          onClick={handleExportCSV}
+          className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Esporta CSV
+        </button>
+      </div>
+
+      <div className="mt-4">
+        <div className="relative">
+          <svg
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cerca per numero fattura, email, nome..."
+            className="w-full rounded-lg border border-zinc-300 py-2 pl-10 pr-4 text-sm shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+        </div>
+      </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="rounded-lg px-3 py-2 text-zinc-600 transition hover:bg-zinc-100 disabled:opacity-30"
+          >
+            &laquo; Precedente
+          </button>
+          <span className="text-zinc-500">
+            Pagina {page} di {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="rounded-lg px-3 py-2 text-zinc-600 transition hover:bg-zinc-100 disabled:opacity-30"
+          >
+            Successiva &raquo;
+          </button>
+        </div>
+      )}
 
       <div className="mt-8 space-y-4">
         {orders.length === 0 ? (
@@ -192,7 +274,13 @@ export default function AdminOrdersPage() {
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <select
                     value={order.status}
-                    onChange={(e) => updateStatus(order.id, e.target.value)}
+                    onChange={(e) => {
+                      const newStatus = e.target.value
+                      if (newStatus === order.status) return
+                      if (window.confirm(`Confermi il passaggio a "${STATUS_LABELS[newStatus] || newStatus}"?`)) {
+                        updateStatus(order.id, newStatus)
+                      }
+                    }}
                     disabled={savingId === order.id}
                     className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   >

@@ -2,14 +2,36 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { formatPrice } from "@/lib/format"
 import { assertAdminPage } from "@/lib/admin-guard"
+import { DeleteProductButton } from "@/components/DeleteProductButton"
+import { Pagination } from "@/components/Pagination"
 
-export default async function AdminProductsPage() {
+const PER_PAGE = 15
+
+type Props = {
+  searchParams: Promise<{ page?: string; q?: string }>
+}
+
+export default async function AdminProductsPage({ searchParams }: Props) {
   await assertAdminPage()
+  const { page: pageStr, q } = await searchParams
+  const currentPage = Math.max(1, Number(pageStr) || 1)
 
-  const products: any[] = await prisma.product.findMany({
-    include: { category: true },
-    orderBy: { createdAt: "desc" },
-  })
+  const where = q?.trim()
+    ? { name: { contains: q.trim(), mode: "insensitive" as const } }
+    : {}
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.product.count({ where }),
+  ])
+
+  const totalPages = Math.ceil(total / PER_PAGE)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -23,7 +45,17 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-lg border border-zinc-200">
+      <form className="mt-6" method="GET" action="/admin/products">
+        <input
+          type="search"
+          name="q"
+          defaultValue={q || ""}
+          placeholder="Cerca prodotto..."
+          className="block w-full max-w-xs rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        />
+      </form>
+
+      <div className="mt-8 overflow-x-auto rounded-lg border border-zinc-200">
         <table className="min-w-full divide-y divide-zinc-200">
           <thead className="bg-zinc-50">
             <tr>
@@ -68,12 +100,15 @@ export default async function AdminProductsPage() {
                   >
                     Modifica
                   </Link>
+                  <DeleteProductButton productId={product.id} productName={product.name} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} searchParams={{}} basePath="/admin/products" />
     </div>
   )
 }

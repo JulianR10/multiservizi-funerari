@@ -14,7 +14,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
   await assertAdminPage()
   const { id } = await params
 
-  const order: any = await prisma.order.findUnique({
+  const order = await prisma.order.findUnique({
     where: { id },
     include: {
       user: { select: { name: true, email: true } },
@@ -75,6 +75,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         currentStatus={order.status}
         trackingNumber={order.trackingNumber}
         trackingUrl={order.trackingUrl}
+        paymentStatus={order.paymentStatus}
+        total={order.total}
+        invoiceNumber={order.invoiceNumber}
       />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
@@ -146,7 +149,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         <div className="rounded-lg border border-zinc-200 bg-chalk p-6">
           <h2 className="font-heading text-lg font-semibold text-zinc-900">Articoli</h2>
           <ul className="mt-3 divide-y divide-zinc-100">
-            {order.items.map((item: any) => (
+            {order.items.map((item) => (
               <li key={item.id} className="flex justify-between py-3 text-sm">
                 <div>
                   <p className="text-zinc-900">{item.name}</p>

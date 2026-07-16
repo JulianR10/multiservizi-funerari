@@ -7,13 +7,13 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
   await assertAdminPage()
   const { id } = await props.params
 
-  const product: any = await prisma.product.findUnique({
+  const product = await prisma.product.findUnique({
     where: { id },
   })
 
   if (!product) notFound()
 
-  const categories: any[] = await prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   })
 

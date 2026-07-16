@@ -2,22 +2,36 @@
 
 import { useState } from "react"
 import { STATUS_OPTIONS } from "@/lib/order-status"
-import { updateOrder } from "@/app/actions/admin"
+import { updateOrder, refundOrder } from "@/app/actions/admin"
+import { formatPrice } from "@/lib/format"
 
 type Props = {
   orderId: string
   currentStatus: string
   trackingNumber: string | null
   trackingUrl: string | null
+  paymentStatus: string
+  total: number
+  invoiceNumber: string | null
 }
 
-export function OrderActions({ orderId, currentStatus, trackingNumber, trackingUrl }: Props) {
+export function OrderActions({
+  orderId,
+  currentStatus,
+  trackingNumber,
+  trackingUrl,
+  paymentStatus,
+  total,
+  invoiceNumber,
+}: Props) {
   const [status, setStatus] = useState(currentStatus)
   const [showTracking, setShowTracking] = useState(false)
   const [trackNum, setTrackNum] = useState(trackingNumber || "")
   const [trackUrl, setTrackUrl] = useState(trackingUrl || "")
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [showRefundConfirm, setShowRefundConfirm] = useState(false)
+  const [refundError, setRefundError] = useState<string | null>(null)
 
   async function updateStatus(newStatus: string) {
     setSaving(true)
@@ -53,6 +67,25 @@ export function OrderActions({ orderId, currentStatus, trackingNumber, trackingU
     }
   }
 
+  async function handleRefund() {
+    setSaving(true)
+    setRefundError(null)
+    try {
+      const result = await refundOrder(orderId)
+      if (result.success) {
+        setShowRefundConfirm(false)
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 3000)
+      } else {
+        setRefundError(result.error)
+      }
+    } catch {
+      setRefundError("Errore durante il rimborso")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="mt-6 rounded-lg border border-zinc-200 bg-chalk p-6">
       <div className="flex flex-wrap items-center gap-6">
@@ -61,7 +94,13 @@ export function OrderActions({ orderId, currentStatus, trackingNumber, trackingU
           <div className="mt-1 flex items-center gap-3">
             <select
               value={status}
-              onChange={(e) => updateStatus(e.target.value)}
+              onChange={(e) => {
+                const newStatus = e.target.value
+                if (newStatus === status) return
+                if (window.confirm(`Confermi il passaggio a "${STATUS_OPTIONS.find(o => o.value === newStatus)?.label || newStatus}"?`)) {
+                  updateStatus(newStatus)
+                }
+              }}
               disabled={saving}
               className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
             >
@@ -147,7 +186,62 @@ export function OrderActions({ orderId, currentStatus, trackingNumber, trackingU
             </div>
           )}
         </div>
+
+        {paymentStatus === "paid" && (
+          <>
+            <div className="h-8 w-px bg-zinc-200" />
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Pagamento</label>
+              <div className="mt-1 flex items-center gap-2">
+                {invoiceNumber && (
+                  <a
+                    href={`/api/orders/${orderId}/invoice`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                  >
+                    Scarica fattura
+                  </a>
+                )}
+                {showRefundConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-600">
+                      Rimborsare {formatPrice(total)}?
+                    </span>
+                    <button
+                      onClick={handleRefund}
+                      disabled={saving}
+                      className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {saving ? "Rimborso..." : "Conferma"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRefundConfirm(false)
+                        setRefundError(null)
+                      }}
+                      className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                    >
+                      Annulla
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowRefundConfirm(true)}
+                    className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Rimborsa ordine
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
+      {refundError && (
+        <p className="mt-3 text-sm text-red-600">Errore: {refundError}</p>
+      )}
 
       {success && (
         <p className="mt-3 text-sm text-green-700">✓ Salvataggio completato.</p>

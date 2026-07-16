@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import { FormattedDate } from "@/components/CopyrightYear"
 
 export const metadata: Metadata = {
   title: "Cookie Policy – Petrungaro Multiservizi",
@@ -89,7 +88,7 @@ export default function CookiePolicyPage() {
         </p>
 
         <p className="pt-4 text-xs text-zinc-400">
-          Ultimo aggiornamento: <FormattedDate />
+          Ultimo aggiornamento: 8 luglio 2026
         </p>
       </section>
     </div>

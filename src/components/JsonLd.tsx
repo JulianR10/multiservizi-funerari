@@ -1,15 +1,17 @@
+import { COMPANY } from "@/lib/company"
+
 export function JsonLd() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    name: "Petrungaro Multiservizi",
+    name: COMPANY.displayName,
     description: "Il tuo negozio di fiducia per servizi e prodotti di qualità. Assistenza 24 ore su 24, 7 giorni su 7.",
     url: process.env.NEXT_PUBLIC_URL,
-    telephone: ["+39 335 6691440", "+39 335 6691117", "+39 335 1316192", "+39 0982 71580"],
-    email: "mf@multiservizifunerarisrl.com",
+    telephone: [COMPANY.cellulare, "+39 335 6691117", "+39 335 1316192", COMPANY.phone],
+    email: COMPANY.email,
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Via Trento, 11, II° Trav.",
+      streetAddress: COMPANY.address,
       addressLocality: "Fiumefreddo Bruzio",
       addressRegion: "CS",
       postalCode: "87030",
