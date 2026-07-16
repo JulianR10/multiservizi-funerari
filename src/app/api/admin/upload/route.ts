@@ -1,32 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { writeFile, mkdir } from "node:fs/promises"
-import { existsSync } from "node:fs"
-import path from "node:path"
 import { getAdminSession } from "@/lib/admin-auth"
 import { writeAuditLog } from "@/lib/audit"
-
-const ALLOWED_TYPES = new Set([
-  "image/webp",
-  "image/jpeg",
-  "image/png",
-  "image/avif",
-])
-
-const EXT_BY_TYPE: Record<string, string> = {
-  "image/webp": "webp",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/avif": "avif",
-}
-
-const MAX_BYTES = 5 * 1024 * 1024
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products")
-
-function randomName(ext: string): string {
-  const ts = Date.now().toString(36)
-  const rand = Math.random().toString(36).slice(2, 10)
-  return `${ts}-${rand}.${ext}`
-}
+import { uploadProductImage, isStorageConfigured, MAX_BYTES } from "@/lib/storage"
 
 export async function POST(req: NextRequest) {
   const session = await getAdminSession()
@@ -34,17 +9,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 401 })
   }
 
-  const formData = await req.formData()
+  if (!isStorageConfigured()) {
+    return NextResponse.json(
+      { error: "Storage non configurato (BLOB_READ_WRITE_TOKEN mancante)" },
+      { status: 503 }
+    )
+  }
+
+  let formData: FormData
+  try {
+    formData = await req.formData()
+  } catch {
+    return NextResponse.json({ error: "Body non valido" }, { status: 400 })
+  }
+
   const file = formData.get("file")
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "File mancante" }, { status: 400 })
-  }
-
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json(
-      { error: "Formato non supportato. Usa WebP, JPEG, PNG o AVIF." },
-      { status: 400 }
-    )
   }
 
   if (file.size > MAX_BYTES) {
@@ -54,30 +35,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true })
+  try {
+    const result = await uploadProductImage(file)
+    await writeAuditLog({
+      actorId: session.userId,
+      actorEmail: session.email,
+      action: "product.update",
+      entity: "Product",
+      entityId: "upload",
+      metadata: { url: result.url, size: result.size, type: result.type },
+    })
+    return NextResponse.json(result)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Errore durante l'upload"
+    return NextResponse.json({ error: message }, { status: 400 })
   }
-
-  const ext = EXT_BY_TYPE[file.type] || "jpg"
-  const filename = randomName(ext)
-  const filepath = path.join(UPLOAD_DIR, filename)
-
-  const bytes = Buffer.from(await file.arrayBuffer())
-  await writeFile(filepath, bytes)
-
-  await writeAuditLog({
-    actorId: session.userId,
-    actorEmail: session.email,
-    action: "product.update",
-    entity: "Product",
-    entityId: "upload",
-    metadata: { filename, size: file.size, type: file.type },
-  })
-
-  return NextResponse.json({
-    url: `/uploads/products/${filename}`,
-    filename,
-    size: file.size,
-    type: file.type,
-  })
 }
