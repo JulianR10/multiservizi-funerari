@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs"
 import { createCustomerSession, destroyCustomerSession } from "@/lib/customer-auth"
 import { cookies } from "next/headers"
 import { sendEmail } from "@/lib/email"
-import { checkRateLimit, getClientIpFromHeaders } from "@/lib/rate-limit"
+import { checkRateLimitAsync, getClientIpFromHeaders } from "@/lib/rate-limit"
 import { COMPANY } from "@/lib/company"
 import { validateItalianVat } from "@/lib/validators"
 
@@ -60,7 +60,7 @@ type RegisterData = {
 
 export async function registerCustomer(formData: RegisterData): Promise<{ success: boolean; error?: string }> {
   const ip = await getClientIpFromHeaders()
-  const rateCheck = checkRateLimit(`register:${ip}`, 5, 60_000)
+  const rateCheck = await checkRateLimitAsync(`register:${ip}`, 5, 60_000)
   if (!rateCheck.allowed) {
     return { success: false, error: "Troppe richieste. Riprova tra un minuto." }
   }
@@ -175,7 +175,7 @@ export async function loginCustomer(formData: {
   password: string
 }): Promise<{ success: boolean; error?: string }> {
   const ip = await getClientIpFromHeaders()
-  const rateCheck = checkRateLimit(`customer-login:${ip}`, 5, 60_000)
+  const rateCheck = await checkRateLimitAsync(`customer-login:${ip}`, 5, 60_000)
   if (!rateCheck.allowed) {
     return { success: false, error: "Troppi tentativi. Riprova tra un minuto." }
   }

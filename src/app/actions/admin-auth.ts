@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { createAdminSession, destroyAdminSession } from "@/lib/admin-auth"
-import { checkRateLimit, getClientIpFromHeaders } from "@/lib/rate-limit"
+import { checkRateLimitAsync, getClientIpFromHeaders } from "@/lib/rate-limit"
 
 const MAX_FAILED_ATTEMPTS = 5
 const LOCK_DURATION_MS = 15 * 60 * 1000
@@ -17,7 +17,7 @@ export async function adminLogin(formData: FormData) {
   }
 
   const ip = await getClientIpFromHeaders()
-  const rateCheck = checkRateLimit(`login:${ip}`, 5, 60_000)
+  const rateCheck = await checkRateLimitAsync(`login:${ip}`, 5, 60_000)
   if (!rateCheck.allowed) {
     return { error: "Troppi tentativi. Riprova tra un minuto." }
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { checkRateLimitAsync, getClientIp } from "@/lib/rate-limit"
 import { setPaymentProvider, createCheckout } from "@/lib/payments"
 import { stripeAdapter } from "@/lib/payment-adapters/stripe-adapter"
 import { validateCheckoutItems, isValidEmail } from "@/lib/validators"
@@ -9,7 +9,7 @@ setPaymentProvider(stripeAdapter)
 
 export async function POST(req: Request) {
   const ip = getClientIp(req)
-  const { allowed } = checkRateLimit(`checkout:${ip}`, 10, 60_000)
+  const { allowed } = await checkRateLimitAsync(`checkout:${ip}`, 10, 60_000)
   if (!allowed) {
     return NextResponse.json({ error: "Troppe richieste. Riprova tra qualche minuto." }, { status: 429 })
   }

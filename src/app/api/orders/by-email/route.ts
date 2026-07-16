@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { checkRateLimitAsync, getClientIp } from "@/lib/rate-limit"
 import { getCustomerSession } from "@/lib/customer-auth"
 
 export async function GET(req: Request) {
   const ip = getClientIp(req)
-  const rateCheck = checkRateLimit(`orders-by-email:${ip}`, 10, 60_000)
+  const rateCheck = await checkRateLimitAsync(`orders-by-email:${ip}`, 10, 60_000)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: "Troppe richieste. Riprova tra qualche minuto." }, { status: 429 })
   }
