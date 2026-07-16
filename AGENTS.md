@@ -209,6 +209,34 @@ npm run dev
 - **Commits**: conventional commits in English (`feat:`, `fix:`, `refactor:`, `chore:`)
 - **Branches**: `feature/<name>`, `fix/<name>`, `chore/<name>`
 
+## Database workflow
+
+Prisma 7+ uses `prisma.config.ts` to read `DATABASE_URL`. The config loads
+`.env` first then `.env.local` (override) — so secrets can live in
+`.env.local` (gitignored) while `.env` (also gitignored) is used for
+shared/non-secret defaults.
+
+```bash
+# Daily dev — auto-applies any pending migration before starting
+npm run dev
+
+# After editing prisma/schema.prisma (creates a new migration interactively)
+npm run db:migrate
+
+# Manual status check / apply
+npm run db:status
+npm run db:migrate:deploy
+
+# Open Prisma Studio
+npm run db:studio
+```
+
+**Important**: any new migration under `prisma/migrations/` MUST be
+applied locally before the app works, because Next.js code references
+new tables/columns immediately. The `predev` hook handles this
+automatically. In production, run `npx prisma migrate deploy` (or wire
+it as a prebuild hook in `package.json`) before/with the deploy.
+
 ## Testing
 
 Not yet implemented. See `mejoras.md` for priorities.
